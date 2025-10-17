@@ -168,8 +168,10 @@ class TodoListItem {
     toggle (checkbox) {
         if (checkbox.checked) {
             this.#element.classList.add('is-completed')
+            this.#element.classList.add('items-close')
         } else {
             this.#element.classList.remove('is-completed')
+            this.#element.classList.remove('items-close')
         }
     }
 }
