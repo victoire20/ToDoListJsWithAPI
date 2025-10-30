@@ -13,3 +13,12 @@ export function createElement(tagName, attributes = {}) {
     }
     return element
 }
+
+/**
+ * Créer un clone d'un template HTML
+ * @param {string} templateId 
+ * @returns {DocumentFragment}
+ */
+export function createCloneFromTemplate(templateId) {
+    return document.getElementById(templateId).content.cloneNode(true)
+}

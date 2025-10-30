@@ -1,4 +1,4 @@
-import { createElement } from "../functions/dom.js"
+import { createCloneFromTemplate } from "../functions/dom.js"
 
 
 /**
@@ -28,35 +28,28 @@ export class TodoList {
      * @param {HTMLElement} element 
      */
     appendTo (element) {
-        element.innerHTML = `<form action="" class="d-flex pb-4">
-            <input type="hidden" id="todoId">
-            <input type="text" placeholder="Acheter des patates..." class="form-control" name="title" required>
-            <button class="btn btn-primary" id="btnAdd" type="submit"><i class="bi bi-plus-circle"></i> Ajouter</button>
-            <button class="btn btn-warning" id="btnUpdate" type="submit"><i class="bi bi-arrow-repeat"></i> Mettre à jour</button>
-        </form>
-        <main>
-            <div>                
-                <div class="btn-group mb-4">
-                    <button class="btn btn-primary" data-filter="all"><i class="bi bi-list-ul"></i> Toutes</button>
-                    <button class="btn" data-filter="todo"><i class="bi bi-hourglass-split"></i> A faire</button>
-                    <button class="btn" data-filter="done"><i class="bi bi-check2-circle"></i> Faites</button>
-                </div>
-                <button class="btn btn-danger mb-4" id="resetPage"><i class="bi bi-arrow-repeat"></i> Rafraichir la page</button>
-            </div>
-            <div class="list-items">
-                
-            </div>
-        </main>`
+        element.append(
+            createCloneFromTemplate('todolist-layout')
+        )
         this.#listElement = element.querySelector('.list-items')
         for (let todo of this.#todos) {
             const t = new TodoListItem(todo)
-            // t.appendTo(this.#listElement)
             this.#listElement.append(t.element)
         }
 
         element.querySelector('form').addEventListener('submit', (e) => this.#onSubmit(e))
         element.querySelectorAll('.btn-group button').forEach(button => {
             button.addEventListener('click', (e) => this.#toggleFilter(e))
+        })
+
+        this.#listElement.addEventListener('delete', ({detail: todo}) => {
+            this.#todos = this.#todos.filter(t => t !== todo)
+            console.log(this.#todos)
+        })
+
+        this.#listElement.addEventListener('toggle', ({detail: todo}) => {
+            todo.completed = !todo.completed
+            console.log(this.#todos)
         })
     }
 
@@ -76,10 +69,8 @@ export class TodoList {
             completed: false
         }
         const item = new TodoListItem(todo)
-        // item.appendTo(this.#listElement)
         this.#listElement.prepend(item.element)
         form.reset()
-        console.log(todo)
     }
 
     /**
@@ -108,30 +99,28 @@ export class TodoList {
 class TodoListItem {
 
     #element
+    #todo
 
     /** @type {Todo} */
     constructor(todo) {
+        this.#todo = todo
         const id = todo.id
-        const itemDiv = createElement('div', {class: 'items'})
+        const itemDiv = createCloneFromTemplate('todolist-item').firstElementChild
         this.#element = itemDiv
-        const itemLeft = createElement('div', {class: 'item-right'})
-        const checkbox = createElement('input', {
-            class: 'form-control', 
-            type: 'checkbox', 
-            id,
-            checked: todo.completed ? '' : null
-        })
-        const label = createElement('span', {
-            class: todo.completed ? 'items-close' : null
-        })
-        label.innerText = todo.title
-        const button = createElement('button', {class: 'btn btn-danger action'})
-        button.innerHTML = '<i class="bi bi-trash-fill"></i>'
+        
+        const checkbox = itemDiv.querySelector('input')
+        checkbox.setAttribute('id', id)
+        if (todo.completed) {
+            checkbox.setAttribute('checked', '')
+        }
 
-        itemLeft.append(checkbox)
-        itemLeft.append(label)
-        itemDiv.append(itemLeft)
-        itemDiv.append(button)
+        const label = itemDiv.querySelector('span')
+        label.setAttribute('for', id)
+        label.innerText = todo.title
+
+        const button = itemDiv.querySelector('button')
+        button.innerHTML = '<i class="bi bi-trash-fill"></i>'
+        
         this.toggle(checkbox)
 
         button.addEventListener('click', (e) => this.remove(e))
@@ -157,6 +146,15 @@ class TodoListItem {
      */
     remove (e) {
         e.preventDefault()
+        const event = new CustomEvent('delete', {
+            detail: this.#todo,
+            bubbles: true,
+            cancelable: true
+        })
+        this.#element.dispatchEvent(event)
+        if (event.defaultPrevented) {
+            return
+        }
         // Supprime que le côté visuelle et non les données dans le serveur !
         this.#element.remove()
     }
@@ -173,5 +171,10 @@ class TodoListItem {
             this.#element.classList.remove('is-completed')
             this.#element.classList.remove('items-close')
         }
+        const event = new CustomEvent('toggle', {
+            detail: this.#todo,
+            bubbles: true
+        })
+        this.#element.dispatchEvent(event)
     }
 }
