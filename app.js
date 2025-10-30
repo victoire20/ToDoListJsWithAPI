@@ -7,6 +7,7 @@ try {
     const list = new TodoList(todos)
     list.appendTo(document.querySelector('#todolist'))
 } catch (e) {
+    console.log(e)
     const alertElement = createElement('div', {
         class: 'alert alert-danger',
         role: 'alert'
